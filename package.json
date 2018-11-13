@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "manyline": "0.0.1"
+    "manyline": "0.0.1",
+    "utf8": "^3.0.0"
   }
 }

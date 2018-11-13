@@ -1,10 +1,28 @@
-'use strict'
+'use strict';
 
-const {read, write} = require('./secrets')
+const utf8 = require('utf8');
+// console.log('test');
+
+const { read, write } = require('./secrets');
 
 // This is where we strike back.
 
 async function theDoubleAgents() {
+  let agentArray = [];
+  for (let i = 0; i < 9; i++) {
+    try {
+      console.log(await read(`/agent/${i}`));
+      agentArray.push(await read(`/agent/${i}`));
+    } catch (err) {
+      if (err.status === '503') {
+        theDoubleAgents();
+      }
+    }
+  }
+
+  // console.log(agentArray);
+  return agentArray;
+
   // 1. `read` the double agents files
   //    /agent/0 through
   //    /agent/9
@@ -15,10 +33,30 @@ async function theDoubleAgents() {
   //    (they were either retired or gave up)
 
   // 3. `console.log` them (in any order)
-
 }
 
-async function theSchedule() {
+async function theSchedule(next) {
+  // let currentNext = '';
+  let currentData;
+  let currentNext = next;
+  let currentAgent;
+  if (!next) {
+    return currentData;
+  }
+  try {
+    currentAgent = await read(`/schedule/${currentNext}`);
+    currentData = JSON.parse(currentAgent).data;
+    // console.log('agent', currentData);
+    currentNext = JSON.parse(currentAgent).next;
+    // console.log('currentNext', currentNext);
+    return (currentData += await theSchedule(currentNext));
+    // .slice(0, -4);
+  } catch (err) {
+    if (err.status === '503') {
+      theSchedule(currentNext);
+    }
+  }
+
   // We need to find and infiltrate their upcoming meetings
   // Their schedule data is encoded in Base64 and splited
   // into multiple json Files.
@@ -37,12 +75,27 @@ async function theSchedule() {
   // 6. Log the string with the schedule
 }
 
+//GET RETURN OF THE SCHEDULE AND PRINT IT TO CONSOLE
+let answer = theSchedule('TmV4dCB');
 
 (async () => {
-  try {
-    console.log('--- 1. the double agents ---')
-    await theDoubleAgents()
-    console.log('--- 2. the schedule ---')
-    await theSchedule()
-  } catch (err) { console.error(err) }
-})()
+  let codedMessage = await answer;
+  console.log(secret(codedMessage));
+})();
+
+//HELPER FUNCTION TO CONVERT CODE INTO SECRET MESSAGE
+function secret(code) {
+  let answer = new Buffer(code, 'base64').toString('utf8');
+  return answer;
+}
+
+// (async () => {
+//   try {
+//     console.log('--- 1. the double agents ---');
+//     await theDoubleAgents();
+//     console.log('--- 2. the schedule ---');
+//     await theSchedule('TmV4dCB');
+//   } catch (err) {
+//     console.error(err);
+//   }
+// })();
